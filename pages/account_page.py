@@ -30,4 +30,4 @@ class MyAccount(Page):
         self.click(*self.WOO_SUBMIT)
 
     def verify_error(self, msg):
-        self.verify_text(msg, *self.ALERT_DIV)
+        self.verify_text(msg, self.ALERT_DIV)

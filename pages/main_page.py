@@ -10,6 +10,9 @@ class MainPage(Page):
     SEARCH_BTN = (By.CSS_SELECTOR, "button.ux-search-submit")
     SEARCH_NAV = (By.CSS_SELECTOR, "nav.woocommerce-breadcrumb.breadcrumbs.uppercase")
 
+    def open_home_page(self):
+        self.open_page()
+
     def drop_search(self):
         m = self.find_element(*self.HEADER_SEARCH)
         a = self.create_action_chain()
