@@ -54,7 +54,7 @@ class _Pagination(Page):
 
     def find_rel_element(self, *locator):
         nav_elem = self.find_element(*self.NAV_LINK)
-        self.create_action_chain().move_to_element(nav_elem).perform()
+        self.action_chain().move_to_element(nav_elem).perform()
         return nav_elem.find_element(*locator)
 
     def verify_current_page_number(self, number):

@@ -17,6 +17,7 @@ def verify_in_stock(context):
 def add_to_cart(context):
     if context.app.product_page.out_of_stock:
         return
+
     context.app.header_nav.cart_nav.add_product(context.app.product_page)
 
 

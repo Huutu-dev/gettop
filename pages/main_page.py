@@ -15,7 +15,7 @@ class MainPage(Page):
 
     def drop_search(self):
         m = self.find_element(*self.HEADER_SEARCH)
-        a = self.create_action_chain()
+        a = self.action_chain()
         a.move_to_element(m).perform()
 
     def input_search(self, search_word):

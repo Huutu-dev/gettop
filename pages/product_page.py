@@ -19,46 +19,48 @@ class ProductPage(Page):
         if 'product' not in prod_address:
             prod_address = f'product/{prod_address}'
         self.open_page(prod_address)
-
-        self._price = None
-        self._out_of_stock = None
-        self._prod_name = None
+        self.pre_load(prod_address)
         if product_name:
             self.verify_prod_name(product_name)
 
     def verify_prod_name(self, prod_name):
         assert self.product_name == prod_name, \
             f'Expected "{self.product_name}", but got {prod_name}'
-        print('Working on', prod_name)
+        # print('Working on', prod_name)
 
     @property
     def product_name(self) -> str:
-        if not self._prod_name:
-            ele = self.find_element(*self.PROD_TITLE)
-            self._prod_name = ele.text.strip()
         return self._prod_name
 
     @property
     def price(self) -> float:
-        if self._price is None:
-            elements = self.find_elements(*self.PROD_PRICE_AMOUNT)
-            if len(elements) == 1:
-                ele = elements[0]
-            else:
-                for ele in elements:
-                    parent_node = ele.find_element(By.XPATH, '..')
-                    if parent_node.tag_name != 'del':
-                        break
-                else:
-                    assert False, 'Product Price could not found'
-            self._price = float(ele.text[1:].replace('$', '').replace(',', ''))
         return self._price
 
     @property
     def out_of_stock(self) -> bool:
-        if self._out_of_stock is None:
-            self._out_of_stock = len(self.find_elements(*self.OUT_OF_STOCK)) > 0
         return self._out_of_stock
+
+    def pre_load(self, url):
+        self.wait_for_opening(url)
+        # price
+        elements = self.find_elements(*self.PROD_PRICE_AMOUNT)
+        if len(elements) == 1:
+            ele = elements[0]
+        else:
+            for ele in elements:
+                parent_node = ele.find_element(By.XPATH, '..')
+                if parent_node.tag_name.lower() != 'del':
+                    break
+            else:
+                assert False, 'Product Price could not found'
+        self._price = float(ele.text.strip().replace('$', '').replace(',', ''))
+
+        # check stock
+        self._out_of_stock = len(self.find_elements(*self.OUT_OF_STOCK)) > 0
+
+        # product name
+        ele = self.find_element(*self.PROD_TITLE)
+        self._prod_name = ele.text.strip()
 
     def warning_stock(self) -> str:
         if self.out_of_stock:
@@ -66,7 +68,7 @@ class ProductPage(Page):
         return "In STOCK"
 
     def add_to_cart(self):
-        """Absolute, using CartNav.add_product(self.ADD_CART_BUTTON)"""
+        """Obsolete, using CartNav.add_product(self.ADD_CART_BUTTON)"""
         self.wait_for_element_click(self.ADD_CART_BUTTON)
 
     @property

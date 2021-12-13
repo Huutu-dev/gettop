@@ -24,7 +24,7 @@ def without_product(context):
 
 @When('Click on Cart')
 def open_cart_page(context):
-    context.app.header_nav.cart_nav.click_to_cart_page()
+    context.app.header_nav.cart_nav.click_to_open_cart_page()
 
 
 @Then('Verify that Empty Cart page opened')

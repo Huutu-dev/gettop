@@ -1,6 +1,7 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta
 from contextlib import contextmanager
 
+from selenium.common import exceptions as selenium_error
 from selenium.webdriver.remote.webdriver import WebDriver, WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
@@ -28,7 +29,7 @@ class Page(metaclass=ABCMeta):
     def find_elements(self, *locator):
         return self.driver.find_elements(*locator)
 
-    def create_action_chain(self) -> ActionChains:
+    def action_chain(self) -> ActionChains:
         return ActionChains(self.driver)
 
     def clear_input(self, *locator):
@@ -46,12 +47,12 @@ class Page(metaclass=ABCMeta):
     def click(self, *locator):
         self.driver.find_element(*locator).click()
 
-    def click_wait_page_changed(self, locator):
+    def click_wait_page_changed(self, mark):
         old_url = self._driver.current_url
-        if isinstance(locator, WebElement):
-            locator.click()
+        if isinstance(mark, WebElement):
+            mark.click()
         else:
-            self.click(*locator)
+            self.click(*mark)
         self.driver.wait.until(EC.url_changes(old_url))
 
     def wait_for_element_appear(self, locator) -> WebElement:
@@ -60,8 +61,22 @@ class Page(metaclass=ABCMeta):
     def wait_for_element_displayed(self, locator):
         self.driver.wait.until(EC.visibility_of_element_located(locator))
 
-    def wait_for_element_click(self, locator, message=''):
-        e = self.driver.wait.until(EC.element_to_be_clickable(locator), message=message)
+    @staticmethod
+    def wait_for_sub_element_displayed(element: WebElement, locator):
+        def _predicate(_):
+            try:
+                sub_element = element.find_element(*locator)
+                return sub_element if sub_element.is_displayed() else False
+            except selenium_error.InvalidSelectorException as e:
+                raise e
+            except selenium_error.StaleElementReferenceException:
+                return False
+
+        driver = element.parent
+        return driver.wait.until(_predicate)
+
+    def wait_for_element_click(self, mark, message=''):
+        e = self.driver.wait.until(EC.element_to_be_clickable(mark), message=message)
         e.click()
 
     def wait_for_renew(self, locator):
@@ -73,7 +88,8 @@ class Page(metaclass=ABCMeta):
         self.driver.wait.until(EC.staleness_of(element))
 
     def verify_text(self, expected_text, locator):
-        actual_text = self.driver.find_element(*locator).text
+        e = self.driver.wait.until(EC.visibility_of_element_located(locator))
+        actual_text = e.text
         assert actual_text == expected_text, \
             f'Error! Actual text "{actual_text}" does not match expected "{expected_text}"'
 

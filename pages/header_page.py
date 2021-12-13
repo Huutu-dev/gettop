@@ -1,4 +1,8 @@
+from selenium.webdriver.remote.webdriver import WebElement
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common import exceptions as selenium_error
+
 from .base_page import Page
 from .product_page import ProductPage
 from .cart_page import CartPage
@@ -17,11 +21,12 @@ class HeaderNav(Page):
 class CartNav(Page):
     RIGHT_ELEMENTS = (By.CSS_SELECTOR, 'div.flex-col.hide-for-medium.flex-right')
     MOBILE_RIGHT_ELEMENTS = (By.CSS_SELECTOR, 'div.flex-col.show-for-medium.flex-right')
-    CART_PRICE = (By.CSS_SELECTOR, 'span.woocommerce-Price-amount')
-    CART_ICON = (By.CSS_SELECTOR, 'span.cart-icon')
+    _RIGHT_CART_PRICE = (By.CSS_SELECTOR, 'span.woocommerce-Price-amount')
+    _RIGHT_CART_ICON = (By.CSS_SELECTOR, 'span.cart-icon')
     DROP_DOWN = (By.CSS_SELECTOR, 'li.cart-item.has-dropdown')
     EMPTY_MSG = (By.CSS_SELECTOR, 'li.cart-item.has-dropdown p.woocommerce-mini-cart__empty-message')
-    CART_ITEMS = (By.CSS_SELECTOR, 'li.cart-item.has-dropdown li.mini_cart_item')
+    UL_PRODUCT = (By.CSS_SELECTOR, 'li.cart-item.has-dropdown ul.woocommerce-mini-cart.cart_list.product_list_widget')
+    _CART_ITEMS = (By.CSS_SELECTOR, 'li.mini_cart_item')
     SUBTOTAL = (By.CSS_SELECTOR, 'li.cart-item.has-dropdown p.total')
     WC_FORWARD = (By.CSS_SELECTOR, 'li.cart-item.has-dropdown a.button.wc-forward')
 
@@ -31,11 +36,11 @@ class CartNav(Page):
         self._storage = {}
 
     def get_cart_amount(self):
-        price_elem = self.find_element(*self.RIGHT_ELEMENTS).find_element(*self.CART_PRICE)
+        price_elem = self.find_element(*self.RIGHT_ELEMENTS).find_element(*self._RIGHT_CART_PRICE)
         return float(price_elem.text.replace('$', '').replace(',', ''))
 
     def get_number_prods(self):
-        icon_elem = self.find_element(*self.RIGHT_ELEMENTS).find_element(*self.CART_ICON)
+        icon_elem = self.find_element(*self.RIGHT_ELEMENTS).find_element(*self._RIGHT_CART_ICON)
         return int(icon_elem.text.replace(',', ''))
 
     def get_view_card_element(self):
@@ -68,14 +73,14 @@ class CartNav(Page):
         self.wait_for_element_click(add_locator)
         self.wait_staleness_of(right_ele)
 
-    def click_to_cart_page(self):
-        icon_elem = self.find_element(*self.RIGHT_ELEMENTS).find_element(*self.CART_ICON)
+    def click_to_open_cart_page(self):
+        icon_elem = self.find_element(*self.RIGHT_ELEMENTS).find_element(*self._RIGHT_CART_ICON)
         icon_elem.click()
         self.wait_for_opening(CartPage.partial_url)
 
     def capture_hover_icon(self):
-        icon_elem = self.find_element(*self.RIGHT_ELEMENTS).find_element(*self.CART_ICON)
-        action = self.create_action_chain()
+        icon_elem = self.find_element(*self.RIGHT_ELEMENTS).find_element(*self._RIGHT_CART_ICON)
+        action = self.action_chain()
         action.move_to_element(icon_elem).perform()
         self.wait_for_element_appear(self.EMPTY_MSG)
         self._storage['drop_message'] = self.find_element(*self.EMPTY_MSG).text
@@ -86,9 +91,8 @@ class CartNav(Page):
             f'Error! Actual text "{actual_text}" does not match expected "{expected_text}"'
 
     def hover_icon(self):
-        icon_elem = self.find_element(*self.RIGHT_ELEMENTS).find_element(*self.CART_ICON)
-        action = self.create_action_chain()
-        action.move_to_element(icon_elem).perform()
+        icon_elem = self.find_element(*self.RIGHT_ELEMENTS).find_element(*self._RIGHT_CART_ICON)
+        self.action_chain().move_to_element(icon_elem).perform()
 
     def verify_drop_message(self, expected_text):
         self.wait_for_element_displayed(self.EMPTY_MSG)
@@ -96,8 +100,14 @@ class CartNav(Page):
 
     def _parse_mini_cart_text(self):
         cart_items = {}
-        for ele in self.find_elements(*self.CART_ITEMS):
-            _, prod_name, s_amount = ele.text.split('\n')  # ['×', 'iPhone SE', '1 × $379.00']
+        for ele in self.find_element(*self.RIGHT_ELEMENTS).find_elements(*self._CART_ITEMS):
+            info = [x.strip() for x in ele.text.split('\n') if x.strip()]  # ['×', 'iPhone SE', '1 × $379.00']
+            try:
+                _, prod_name, s_amount = info
+            except ValueError as ex:
+                print(info)
+                raise ex
+
             number, _, price = s_amount.split()
             number = int(number)
             price = float(price.replace('$', '').replace(',', ''))
@@ -109,19 +119,32 @@ class CartNav(Page):
         product_obj = self._storage['product_obj']
         product_name = product_obj.product_name
 
-        for ele in self.find_elements(*self.CART_ITEMS):
-            cart_prod = ele.text.split('\n')[1]
-            if cart_prod != product_name:
+        action = self.action_chain()
+        ul_product_ele = self.find_element(*self.UL_PRODUCT)
+        action.move_to_element(ul_product_ele).perform()
+        for ele in ul_product_ele.find_elements(*self._CART_ITEMS):
+            self.driver.execute_script("arguments[0].scrollIntoView();", ele)
+            if not any(x.strip() for x in ele.text.split('\n') if x.strip() == product_name):
                 continue
-            remove_ele = ele.find_element(By.CSS_SELECTOR, 'a.remove_from_cart_button')
-            self.create_action_chain().move_to_element(remove_ele).click(remove_ele).perform()
+
+            # remove_ele = self.wait_for_sub_element_displayed(ele, (By.CSS_SELECTOR, 'a.remove_from_cart_button'))
+            self.wait_for_element_click(ele.find_element(By.CSS_SELECTOR, 'a.remove_from_cart_button'))
+            # remove_ele = ele.find_element(By.CSS_SELECTOR, 'a.remove_from_cart_button')
+            # self.action_chain().move_to_element(remove_ele).click(remove_ele).perform()
             self.wait_staleness_of(ele)
             break
         else:
+            print(product_name)
             raise ValueError('No such element product in cart')
 
         # Now verify product has been deleted entirely
-        for ele in self.find_elements(*self.CART_ITEMS):
+        # To make sure ul_product_ele is not stale
+        try:
+            ul_product_ele = self.find_element(*self.UL_PRODUCT)
+        except selenium_error.NoSuchElementException:
+            # Empty list
+            return
+        for ele in ul_product_ele.find_elements(*self._CART_ITEMS):
             cart_prod = ele.text.split('\n')[1]
             if cart_prod == product_name:
                 print(cart_prod)
@@ -136,7 +159,7 @@ class CartNav(Page):
         assert product_name in cart_items
         actual_price = cart_items[product_name]['price']
         assert product_price == actual_price, \
-            f'Error! Actual price "{actual_price}" does not match expected "{product_price}"'
+            f'Error! Actual price "{actual_price}" does not match expected "{product_price}" of product "{product_name}"'
 
     def _verify_subtotal(self, cart_items):
         subtotal_ele = self.find_element(*self.SUBTOTAL)  # Subtotal: $379.00

@@ -1,8 +1,13 @@
 # Created by Houston Le at 12/7/2021
 
-# @Windows10_Chrome_96.0.
-# @Windows10_Firefox_94.0
-@Windows10_ChromeHeadless_96.0.
+#@browser:Firefox_94.0
+#@platform:Windows_10
+#@browser:Chrome_96.0
+#@mode:headless
+
+@platform:OS&X_Big&Sur
+@browser:Safari_14.1
+@mode:BrowserStack
 Feature: Top Cart Menu
   # Task TMTN-5 / TMTN-10
 
@@ -28,18 +33,18 @@ Feature: Top Cart Menu
       |product                             |link                                     |
       |AirPods Pro                         |https://gettop.us/product/airpods-pro/
       |AirPods with Wireless Charging Case |https://gettop.us/product/airpods/
-#      |MacBook Air                         |https://gettop.us/product/macbook-air/
-#      |MacBook Pro 13-inch                 |https://gettop.us/product/macbook-pro-13/
-#      |MacBook Pro 16-inch                 |https://gettop.us/product/macbook-pro-16/
-#      |Watch Series 3                      |https://gettop.us/product/land-tee-jack-jones/
-#      |iPad                                |https://gettop.us/product/ipad/
-#      |iPad Air                            |https://gettop.us/product/ipad-air/
-#      |iPad Pro                            |https://gettop.us/product/ipad-pro/
-#      |iPad mini                           |https://gettop.us/product/ipad-mini/
-#      |iPhone 11                           |https://gettop.us/product/iphone-11/
-#      |iPhone 11 Pro                       |https://gettop.us/product/iphone-11pro/
-#      |iPhone SE                           |https://gettop.us/product/iphone-se/
-#
+      |MacBook Air                         |https://gettop.us/product/macbook-air/
+      |MacBook Pro 13-inch                 |https://gettop.us/product/macbook-pro-13/
+      |MacBook Pro 16-inch                 |https://gettop.us/product/macbook-pro-16/
+      |Watch Series 3                      |https://gettop.us/product/land-tee-jack-jones/
+      |iPad                                |https://gettop.us/product/ipad/
+      |iPad Air                            |https://gettop.us/product/ipad-air/
+      |iPad Pro                            |https://gettop.us/product/ipad-pro/
+      |iPad mini                           |https://gettop.us/product/ipad-mini/
+      |iPhone 11                           |https://gettop.us/product/iphone-11/
+      |iPhone 11 Pro                       |https://gettop.us/product/iphone-11pro/
+      |iPhone SE                           |https://gettop.us/product/iphone-se/
+
   Scenario: Add product to cart, hover over Cart icon, verify correct products and subtotal shown
     Given a "iPhone SE" page "iphone-se/"
     When add to cart
