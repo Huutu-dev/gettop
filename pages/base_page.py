@@ -1,5 +1,6 @@
 from abc import ABCMeta
 from contextlib import contextmanager
+from typing import Optional, Union, Tuple
 
 from selenium.common import exceptions as selenium_error
 from selenium.webdriver.remote.webdriver import WebDriver, WebElement
@@ -93,11 +94,47 @@ class Page(metaclass=ABCMeta):
         assert actual_text == expected_text, \
             f'Error! Actual text "{actual_text}" does not match expected "{expected_text}"'
 
+    def verify_contain_text(self, expected_text, locator):
+        e = self.driver.wait.until(EC.visibility_of_element_located(locator))
+        actual_text = e.text
+        assert expected_text in actual_text, \
+            f'Error! Actual text "{actual_text}" does not contain expected "{expected_text}"'
+
     def verify_url_contains_query(self, query):
         assert query in self.driver.current_url, f'{query} not in {self.driver.current_url}'
 
+    def is_visible_in_viewport(self, element: WebElement) -> bool:
+        def _predicate(_):
+            try:
+                return element if element.is_displayed() else False
+            except selenium_error.InvalidSelectorException as e:
+                raise e
+            except selenium_error.StaleElementReferenceException:
+                return False
+
+        self.driver.wait.until(_predicate)
+
+        source_js = """let elem = arguments[0];
+        let box = elem.getBoundingClientRect();
+        let cx = box.left + box.width / 2, 
+            cy = box.top + box.height / 2;
+        let e = document.elementFromPoint(cx, cy);
+        for(; e; e = e.parentElement) {
+            if(e === elem)
+                return true;
+        }
+        return false;
+        """
+        return self.driver.execute_script(source_js, element)
+
+    def move_to_element_for_see(self, mark: Union[WebElement, Tuple]):
+        element = mark if isinstance(mark, WebElement) else self.find_element(*mark)
+        if not self.is_visible_in_viewport(element):
+            self.action_chain().move_to_element(element).perform()
+        return element
+
     @contextmanager
-    def wait_for_changed(self, an_element: WebElement = None):
+    def wait_for_changed(self, an_element: Optional[WebElement] = None):
         an_element = an_element or self.find_element(By.TAG_NAME, 'html')
         yield
         self.driver.wait.until(EC.staleness_of(an_element))

@@ -8,6 +8,14 @@ class ProductPage(Page):
     ADD_CART_BUTTON = (By.CSS_SELECTOR, 'button.single_add_to_cart_button')
     PROD_PRICE_AMOUNT = (By.CSS_SELECTOR, 'div.product-main p.product-page-price span.woocommerce-Price-amount')
 
+    _storage = {}
+
+    @classmethod
+    def get_storage(cls, reset=False):
+        if reset:
+            cls._storage.clear()
+        return cls._storage
+
     def __init__(self, driver):
         super(ProductPage, self).__init__(driver)
         self._price = None
