@@ -3,11 +3,12 @@
 #@browser:Firefox_94.0
 #@platform:Windows_10
 #@browser:Chrome_96.0
-#@mode:headless
+#@mode:headless_EventFiring
+#@mode:EventFiring
 
-@platform:OS&X_Big&Sur
-@browser:Safari_14.1
-@mode:BrowserStack
+#@platform:OS&X_Big&Sur
+#@browser:Safari_14.1
+#@mode:BrowserStack
 Feature: Top Cart Menu
   # Task TMTN-5 / TMTN-10
 
